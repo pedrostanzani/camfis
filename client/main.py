@@ -23,7 +23,7 @@ def generate():
     for index in indexList:
         lstCommands.append(commands[index])
 
-    return lstCommands
+    return [bytearray(hx) for hx in lstCommands]
 
 
 def generate_protocol_message(command_key: int):
@@ -32,7 +32,7 @@ def generate_protocol_message(command_key: int):
     
 
 def main():
-    pass
+    print(generate())
 
 
 if __name__ == '__main__':
