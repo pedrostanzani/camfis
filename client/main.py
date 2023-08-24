@@ -16,9 +16,13 @@ commands = {
 def generate():
     ### Escolhe n comandos e devolve uma lista contendo todos eles
     lstCommands = []
+    indexList = []
     n = random.randint(10,30)
     for _ in range(n):
-        lstCommands.append(random.choice([1, 2, 3, 4, 5, 6, 7, 8, 9]))
+        indexList.append(random.choice([1, 2, 3, 4, 5, 6, 7, 8, 9]))
+    for index in indexList:
+        lstCommands.append(commands[index])
+
     return lstCommands
 
 
