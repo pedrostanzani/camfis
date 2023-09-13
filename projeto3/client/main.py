@@ -11,7 +11,7 @@ serialName = '/dev/cu.usbmodem101'
 com1 = enlace(serialName)
 com1.enable()
 
-def payload(txBuffer):
+def payload_(txBuffer):
     # payload de 50 bytes
     lenpayload = 50
     if len(txBuffer)<lenpayload:
@@ -81,7 +81,7 @@ def main():
         EOM = b'\xff\xff\xff'
 
         # funçao para cortar o txBuffer até o ponto que pegamos o payload
-        txBuffer, payload = payload(txBuffer)
+        txBuffer, payload = payload_(txBuffer)
 
         DATAGRAMA = HEAD+payload+EOM
         
