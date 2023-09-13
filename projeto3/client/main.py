@@ -29,7 +29,7 @@ def handshake(message = b'\xff'):
     if com1.rx.getBufferLen() == 0:
         response = input("Servidor inativo. Tentar novamente? S/N: ")
         if response == "s" or response == "S":
-            handshake()
+            return handshake()
         else:
             exit()
     else:
@@ -41,7 +41,6 @@ def handshake(message = b'\xff'):
 def confirmacao(NumeroDoPacote):
     time.sleep(0.1)
     if com1.rx.getBufferLen() == 0:
-        com1.rx.clearBuffer()
         return False
     else: 
         if int.from_bytes(com1.getData(1)[0:5], 'big') == NumeroDoPacote:
@@ -56,11 +55,9 @@ def main():
     with open('agro.png', 'rb') as image:
         BytesImage = image.read()
 
-    if handshake() == False:
+    if not handshake():
         print("HANDSHAKE RECEBIDO DIFERENTE DO ESPERADO")
         exit()
-    else:
-        pass
 
 
     NumeroDoPacote = 1
@@ -84,10 +81,10 @@ def main():
 
         DATAGRAMA = HEAD+payload+EOM
         
-        while confirmacao(NumeroDoPacote) == False:
+        while not confirmacao(NumeroDoPacote):
             com1.sendData(np.asarray(DATAGRAMA))
 
         NumeroDoPacote+=1
 
 
-#print(main())
+main()
