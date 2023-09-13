@@ -69,19 +69,18 @@ def main():
     while len(txBuffer) > 0:
         #   O HEAD terá os primeiros 6 bytes (mais significativos) sendo o numero do pacote
         # e os ultimos 6 bytes (menos significativos) sendo o numero de pacotes totais (será sempre o mesmo valor)
-        HEAD_MaisSignificativos = NumeroDoPacote
-        HEAD_MenosSignificativos = len(BytesImage)
-
-        HEAD_MaisSignificativos = HEAD_MaisSignificativos.to_bytes(6,'big')
-        HEAD_MenosSignificativos = HEAD_MenosSignificativos.to_bytes(6,'big')
-
-        HEAD = HEAD_MaisSignificativos + HEAD_MenosSignificativos
 
         #   O EOM (End Of Message) será FF FF FF fixo
         EOM = b'\xff\xff\xff'
 
         # funçao para cortar o txBuffer até o ponto que pegamos o payload
         txBuffer, payload = payload_(txBuffer)
+
+        HEAD_MaisSignificativos = NumeroDoPacote
+        HEAD_MenosSignificativos = len(payload)
+        HEAD_MaisSignificativos = HEAD_MaisSignificativos.to_bytes(6,'big')
+        HEAD_MenosSignificativos = HEAD_MenosSignificativos.to_bytes(6,'big')
+        HEAD = HEAD_MaisSignificativos + HEAD_MenosSignificativos
 
         DATAGRAMA = HEAD+payload+EOM
         
