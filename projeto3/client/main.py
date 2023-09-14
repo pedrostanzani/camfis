@@ -7,9 +7,19 @@ import numpy as np
 # int para bytestring: int. to_bytes() ---- h = 1; h = h.to_bytes(6,'big')
 # --------------------------------------------------------------------------------------------------
 
-serialName = '/dev/cu.usbmodem101'
+# Entrada superior esquerda
+#serialName = '/dev/cu.usbmodem101'
+
+# Entrada direita
+serialName = '/dev/cu.usbmodem21101'
 com1 = enlace(serialName)
 com1.enable()
+
+# Martyr byte (Byte de sacrificio)
+time.sleep(0.2)
+com1.sendData(b'00')
+time.sleep(1)
+
 
 def payload_(txBuffer):
     # payload de 50 bytes
@@ -24,35 +34,47 @@ def payload_(txBuffer):
 
 def handshake(message = b'\xff'):
     com1.sendData(np.asarray(message))
-
-    time.sleep(5)
-    if com1.rx.getBufferLen() == 0:
-        response = input("Servidor inativo. Tentar novamente? S/N: ")
-        if response == "s" or response == "S":
-            return handshake()
-        else:
-            exit()
+    timeout_limit = time.time() + 5
+    while com1.rx.getBufferLen() == 0:
+        if time.time() > timeout_limit:
+            response = input("Servidor inativo. Tentar novamente? S/N: ")
+            if response == "s" or response == "S":
+                return handshake()
+            else:
+                exit()
+    _handshake = com1.getData(1)[0]
+    if _handshake == b'\xff':
+        return True
     else:
-        if com1.getData(1) == b'\xff':
-            return True
-        else:
-            return False
+        return False
 
+            
 def confirmacao(NumeroDoPacote):
-    time.sleep(0.1)
+
     if com1.rx.getBufferLen() == 0:
         return False
-    else: 
-        if int.from_bytes(com1.getData(1)[0:5], 'big') == NumeroDoPacote:
-            com1.rx.clearBuffer()
+
+    if com1.rx.getBufferLen() > 5:
+        IR = com1.getData(com1.rx.getBufferLen())[0]
+        
+        ndp = IR[0:6]
+        print()
+        print("INFO RECEBIDA:", IR)
+        print("TAMANHO DA INFO:", len(IR))
+        print("INFO IMPORTANTE:", ndp)
+        print("INFO ESPERADA:", NumeroDoPacote)
+        
+
+        com1.rx.clearBuffer()
+        if int.from_bytes(ndp, 'big') == NumeroDoPacote:
+            print("PASSOU NO PACOTE " + str(NumeroDoPacote))
             return True
         else:
-            com1.rx.clearBuffer()
             return False
     
 
 def main():
-    with open('agro.png', 'rb') as image:
+    with open('/Users/pedroventura/Semestres/4/Camada_Insper/Projeto2/camfis-projeto-2/projeto3/agro.png', 'rb') as image:
         BytesImage = image.read()
 
     if not handshake():
@@ -64,9 +86,10 @@ def main():
     txBuffer = BytesImage
     # enviando as mensagens: 
     while len(txBuffer) > 0:
+       
         #   O HEAD terá os primeiros 6 bytes (mais significativos) sendo o numero do pacote
         # e os ultimos 6 bytes (menos significativos) sendo o numero de pacotes totais (será sempre o mesmo valor)
-
+        
         #   O EOM (End Of Message) será FF FF FF fixo
         EOM = b'\xff\xff\xff'
 
@@ -81,10 +104,15 @@ def main():
 
         DATAGRAMA = HEAD+payload+EOM
         
+        #com1.rx.clearBuffer()
+        com1.sendData(DATAGRAMA)
+
         while not confirmacao(NumeroDoPacote):
-            com1.sendData(np.asarray(DATAGRAMA))
+            pass
 
         NumeroDoPacote+=1
+
+    return "finalizou"
 
 
 main()

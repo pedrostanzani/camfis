@@ -5,6 +5,7 @@ from core.enlace import enlace
 # --------------------------------------------------------------------------------------------------
 # byte para int: int. from_bytes() -------- z = b'\x00\x00\x00\x00\x00\x01'; int.from_bytes(z,'big')
 # int para bytestring: int. to_bytes() ---- h = 1; h = h.to_bytes(6,'big')
+#   python -m serial.tools.list_ports
 # --------------------------------------------------------------------------------------------------
 
 serialName = '/dev/cu.usbmodem21101'
@@ -29,7 +30,8 @@ def build_datagram_message(packet_id: int, total_number_of_packets: int, payload
 
     EOP = b'\xff\xff\xff'
     payload_size = len(payload)
-    head = packet_id.to_bytes(4, 'big') + total_number_of_packets.to_bytes(4, 'big') + force_wrong_payload_size(payload_size).to_bytes(4, 'big')
+    # head = packet_id.to_bytes(4, 'big') + total_number_of_packets.to_bytes(4, 'big') + force_wrong_payload_size(payload_size).to_bytes(4, 'big')
+    head = packet_id.to_bytes(4, 'big') + total_number_of_packets.to_bytes(4, 'big') + payload_size.to_bytes(4, 'big')
     return head + payload + EOP
 
 
@@ -66,7 +68,9 @@ if __name__ == '__main__':
 
     print("Handshake approved.")
 
-    data = ([22] * 50) + ([23] * 50) + ([24] * 35)
+    #data = ([22] * 50) + ([23] * 50) + ([24] * 35)
+    with open('/Users/pedroventura/Semestres/4/Camada_Insper/Projeto2/camfis-projeto-2/projeto3/agro.png', 'rb') as image:
+        data = image.read()
     total_number_of_packets = len(data) // 50
     total_number_of_packets += 1 if len(data) % 50 != 0 else 0
 
@@ -79,12 +83,22 @@ if __name__ == '__main__':
         def force_wrong_package_number(pn):
             return 4 if pn == 2 else pn
 
-        message = build_datagram_message(force_wrong_package_number(i + 1), total_number_of_packets, bytes(payload))
+        # message = build_datagram_message(force_wrong_package_number(i + 1), total_number_of_packets, bytes(payload))
+        message = build_datagram_message(i + 1, total_number_of_packets, bytes(payload))
         com1.rx.clearBuffer()
         com1.sendData(message)
 
         print(f"[{i + 1}] Just sent to client ({len(message)} bytes): ", message)
         print()
+
+        # Send package every 2 seconds when no confirmation in received
+        timeout_limit = time.time() + 1
+        while com1.rx.getBufferLen() == 0:
+            if time.time() > timeout_limit:
+                time.sleep(1)
+                com1.sendData(message)
+                print(f"[{i + 1}] Just sent to client ({len(message)} bytes): ", message)
+                print()
 
         rxBuffer, nRx = com1.getData(18)
         packet_id_received = rxBuffer[0:6]
