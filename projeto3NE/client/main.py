@@ -25,6 +25,16 @@ def fetch_payload(data_buffer):
 
 
 def build_datagram_message(packet_id: int, total_number_of_packets: int, payload: bytes):
+    """
+    [Warning]: this function payload-size-agnostic.
+    It will build a message with no restraints when it comes to the payload size.
+    Make sure to send a payload that respects the maximum size established by the protocol.
+
+    Example heading: \x00\x00\x00\x03 \x00\x00\x00\x07 \x00\x00\x00\x50
+    Packet ID: 3
+    Total number of packets: 7
+    Payload size (in bytes): 50
+    """
     def force_wrong_payload_size(pl, force=True):
         return 48 if force else pl
 
@@ -78,6 +88,7 @@ if __name__ == '__main__':
     while True:
         data, payload = fetch_payload(data)
         if len(payload) == 0:
+            # This means that there is no more data left to send out.
             break
 
         def force_wrong_package_number(pn):
@@ -91,20 +102,35 @@ if __name__ == '__main__':
         print(f"[{i + 1}] Just sent to client ({len(message)} bytes): ", message)
         print()
 
+        # Expect confirmation and resend message if no confirmation is received
+        confirmed = False
+        while not confirmed:
+            timeout_limit = time.time() + 2
+            confirmed = True
+            while com1.rx.getBufferLen() == 0:
+                if time.time() > timeout_limit:
+                    com1.sendData(message)
+                    print(f"[{i + 1}] Just sent to client ({len(message)} bytes): ", message)
+                    print()
+                    confirmed = False
+                    break
+        
+        print("Confirmation confirmed.")
+
         # Send package every 2 seconds when no confirmation in received
-        timeout_limit = time.time() + 1
-        while com1.rx.getBufferLen() == 0:
-            if time.time() > timeout_limit:
-                time.sleep(1)
-                com1.sendData(message)
-                print(f"[{i + 1}] Just sent to client ({len(message)} bytes): ", message)
-                print()
+        # timeout_limit = time.time() + 1
+        # while com1.rx.getBufferLen() == 0:
+        #     if time.time() > timeout_limit:
+        #         time.sleep(1)
+        #         com1.sendData(message)
+        #         print(f"[{i + 1}] Just sent to client ({len(message)} bytes): ", message)
+        #         print()
 
         rxBuffer, nRx = com1.getData(18)
         packet_id_received = rxBuffer[0:6]
         payload = rxBuffer[12:15]
         if int.from_bytes(payload, 'big') != 0:
-            print("[ERROR] The server has informed that there has been a transmission error.")
+            print(f"[ERROR] The server has informed that there has been a transmission error with packet of id = {packet_id_received}.")
             exit()
             pass
         else:
