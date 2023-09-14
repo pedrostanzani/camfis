@@ -1,0 +1,2 @@
+class Datagram:
+    pass
