@@ -43,6 +43,10 @@ if __name__ == '__main__':
     last_packet_received = 0
     i = 0
     while True:
+        print("Iteration begins.")
+        # Most times, when we remove the purple cable, it gets stuck here.
+        # But if it gets stuck in: rxBuffer, nRx = com1.getData(payload_size + EOP_SIZE)
+        # then we are fucked.
         rxBuffer, nRx = com1.getData(12)
 
         # Datagram head
@@ -60,6 +64,8 @@ if __name__ == '__main__':
         potential_payload = rxBuffer[:payload_size]
         potential_eof = rxBuffer[payload_size:]
 
+        # Assuming that the message was successfully fetched, 
+        # run validations and store success status in variable packet_ok
         packet_ok = True
 
         # Verify if the EOP is in the right place.
@@ -78,14 +84,21 @@ if __name__ == '__main__':
         # If everything is ok, then add payload to overall dump
         if packet_ok:
             payload_dump += potential_payload
+            i += 1
             if total_number_of_packets == i + 1:
                 print("All packets have been received.")
-                print(payload_dump)
+                with open('./output.png', 'wb') as file:
+                    file.write(payload_dump)
+                # print(payload_dump)
 
         message = build_confirmation_message(packet_id, ok=packet_ok)
         com1.sendData(message)
 
+        if total_number_of_packets == i + 1:
+            exit()
+
         # TODO: iter does not correspond to packet in case of continuing after errors
-        i += 1
+        # i += 1
+        
 
     print(rxBuffer)
