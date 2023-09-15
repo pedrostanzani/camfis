@@ -5,12 +5,12 @@ class Packet:
     def __init__(self,
                  payload: bytes,
                  message_type: int,
-                 server_id: int,
                  total_number_of_packets: int,
                  packet_id: int,
                  file_id: int,
                  last_successfully_received_packet_id: int,
-                 is_handshake: bool = False):
+                 is_handshake: bool = False,
+                 server_id: int = 0):
         # Verify that the payload respects maximum size set by the protocol.
         self.payload = payload
         if len(self.payload) > self.MAX_PAYLOAD:
@@ -45,6 +45,6 @@ class Packet:
 
 
 if __name__ == '__main__':
-    p = Packet(b'\xff\x00\x01', 1, 3, 64, 4, 6, 3)
+    p = Packet(b'\xff\x00\x01', 1, 64, 4, 6, 3, server_id=4)
     msg = p.message()
     print(msg)
