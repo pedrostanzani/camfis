@@ -7,10 +7,10 @@ class Packet:
                  message_type: int,
                  total_number_of_packets: int,
                  packet_id: int,
-                 file_id: int,
                  last_successfully_received_packet_id: int,
                  is_handshake: bool = False,
-                 server_id: int = 0):
+                 server_id: int = 0,
+                 file_id: int = 0,):
         # Verify that the payload respects maximum size set by the protocol.
         self.payload = payload
         if len(self.payload) > self.MAX_PAYLOAD:
