@@ -45,16 +45,21 @@ class Server:
             if ocioso and com1.rx.getBufferLen() >= 9:
                 print('\n Mensagem 1 Recebida, aguardando verificação \n')
                 # Message 1 received
-                head = com1.getData(9)
-                if integer(head[0]) == 1 and integer(head[1]) == self.serverID:
+                head = com1.getData(9)[0]
+                EOP = com1.getData(com1.rx.getBufferLen())[0][-4:]
+                if integer(head[0]) == 1 and integer(head[1]) == self.serverID and EOP == b'\xaa\xbb\xcc\xdd':
                     print("Verificado com sucesso:")
                     print("h0 recebido igual ao esperado (1)")
                     print("h1 recebido igual ao esperado (17) \n")
+                    print("EOP recebido igual ao esperado (b'\xaa\xbb\xcc\xdd')")
                     ocioso = False
                 else:
                     print("Erro na Verificação do handshake: ") 
                     print("h0 recebido: " + str(integer(head[0])) + "\n h0 esperado: 1")
+                    print()
                     print("h1 recebido: " + str(integer(head[1])) + "\n h0 esperado: 17")
+                    print()
+                    print("EOP recebido: " + str(EOP) + "\n EOP esperado: b'\xaa\xbb\xcc\xdd'")
                     time.sleep(1)
         
         # ocioso = False: 
@@ -80,12 +85,14 @@ class Server:
             timeout_limit_1 = time.time()
             timeout_limit_2 = time.time() 
             if com1.rx.getBufferLen() >= 9:
+                print("--------------------------------------------------")
                 print("\nMENSAGEM RECEBIDA: ")
-                message = com1.getData(com1.rx.getBufferLen())
+                message = com1.getData(com1.rx.getBufferLen())[0]
                 print(message)
+                print("--------------------------------------------------")
                 print()
 
-                if self.verifyType3(message[0:10], contador-1, len(message)-10-4):
+                if self.verifyType3(message[0:10], contador-1, len(message)-10-4) and message[-4:] == b'\xaa\xbb\xcc\xdd':
                     print("--------------------------------------------------")
                     print('PACKET RECEBIDO CONFORME ESPERADO!')
                     # packet ok
@@ -146,7 +153,8 @@ class Server:
                     timeout_limit_1 = time.time()
 
                     
-
+s = Server(17)
+Server.main()
 
 
 
