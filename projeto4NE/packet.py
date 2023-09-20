@@ -18,6 +18,8 @@ class Packet:
         self.file_id = config['fileID']
         self.last_successful_packet = config['lastSuccessfulPacket']
         self.is_handshake = config['messageType'] == 1
+        if 'resendPacket' in config:
+            self.resend_packet = config['resendPacket']
 
     def head(self):
         _head = bytes()
@@ -27,7 +29,7 @@ class Packet:
         _head += self.total_number_of_packets.to_bytes(1, 'big') # H3
         _head += self.packet_id.to_bytes(1, 'big') # H4
         _head += self.file_id.to_bytes(1, 'big') if self.is_handshake else len(self.payload).to_bytes(1, 'big') # H5
-        _head += b'\x00' # H6 TODO
+        _head += self.resend_packet.to_bytes(1, 'big') if self.message_type == 6 else b'\x00' # H6
         _head += self.last_successful_packet.to_bytes(1, 'big') # H7
         _head += b'\x00\x00' # H8, H9
         return _head

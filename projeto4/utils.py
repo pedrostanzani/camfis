@@ -1,5 +1,8 @@
 from protocol.packet import Packet
 def split_and_assemble(imagePath, payloadSize=114):
+    MESSAGES_SENT_BEFORE = 1
+
+
     payloadList = []
     with open(imagePath, 'rb') as image:
         data = image.read()
@@ -12,7 +15,7 @@ def split_and_assemble(imagePath, payloadSize=114):
             data = []
         payloadList.append(payload)
 
-    [Packet(n, 3, len(payloadList), i+1, i) for i, n in enumerate(payloadList)]
+    [Packet(n, 3, len(payloadList), i+(1+MESSAGES_SENT_BEFORE), i+MESSAGES_SENT_BEFORE) for i, n in enumerate(payloadList)]
     
     
     
