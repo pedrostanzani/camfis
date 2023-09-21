@@ -125,8 +125,8 @@ class Server:
                     'totalNumberOfPackets': self.integer(message[3]),
                     'packetID': contador,
                     'fileID': 0,
-                    'lastSuccessfulPacket': contador-1,
-                    'resendPacket': self.integer(message[4])
+                    'lastSuccessfulPacket': contador-2,
+                    'resendPacket': self.integer(message[4])+1
                     }
                     p = Packet(b'', config)
                     print("MENSAGEM TIPO 6 ENVIADA: ")
