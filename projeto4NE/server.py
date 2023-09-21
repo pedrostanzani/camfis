@@ -9,10 +9,7 @@ from packet import Packet
 #   python -m serial.tools.list_ports
 # --------------------------------------------------------------------------------------------------
 
-def integer(b):
-    return int.from_bytes(b, 'big')
-def byte(i, n):
-    return i.to_bytes(n, 'big')
+
 
 
 class Server:
@@ -20,10 +17,17 @@ class Server:
     def __init__(self, serverID):
         self.serverID = serverID
         self.LIST = []
+    
+    def integer(self, b):
+        if isinstance(b, int):
+            return b
+        return int.from_bytes(b, 'big')
+    def byte(self, i, n):
+        return i.to_bytes(n, 'big')
 
     def verifyType3(self, head, lr, payload_length):
         # lr = last received
-        if integer(head[0]) == 3 and integer(head[4]) == lr+1 and payload_length==integer(head[5]) and integer(head[7]) == lr:
+        if self.integer(head[0]) == 3 and self.integer(head[4]) == lr+1 and payload_length==self.integer(head[5]) and self.integer(head[7]) == lr:
             return True
         else: 
             return False
@@ -36,6 +40,10 @@ class Server:
         serialName = '/dev/cu.usbmodem21101'
         com1 = enlace(serialName)
         com1.enable()
+        print("esperando 1 byte de sacrifício") 
+        rxBuffer, nRx = com1.getData(1) 
+        com1.rx.clearBuffer()
+        time.sleep(0.1)
 
         contador = 0
         ocioso = True
@@ -47,17 +55,17 @@ class Server:
                 # Message 1 received
                 head = com1.getData(9)[0]
                 EOP = com1.getData(com1.rx.getBufferLen())[0][-4:]
-                if integer(head[0]) == 1 and integer(head[1]) == self.serverID and EOP == b'\xaa\xbb\xcc\xdd':
+                if self.integer(head[0]) == 1 and self.integer(head[1]) == self.serverID and EOP == b'\xaa\xbb\xcc\xdd':
                     print("Verificado com sucesso:")
                     print("h0 recebido igual ao esperado (1)")
-                    print("h1 recebido igual ao esperado (17) \n")
-                    print("EOP recebido igual ao esperado (b'\xaa\xbb\xcc\xdd')")
+                    print("h1 recebido igual ao esperado (17)")
+                    print("EOP recebido igual ao esperado (b'\xaa\xbb\xcc\xdd')\n")
                     ocioso = False
                 else:
                     print("Erro na Verificação do handshake: ") 
-                    print("h0 recebido: " + str(integer(head[0])) + "\n h0 esperado: 1")
+                    print("h0 recebido: " + str(self.integer(head[0])) + "\n h0 esperado: 1")
                     print()
-                    print("h1 recebido: " + str(integer(head[1])) + "\n h0 esperado: 17")
+                    print("h1 recebido: " + str(self.integer(head[1])) + "\n h0 esperado: 17")
                     print()
                     print("EOP recebido: " + str(EOP) + "\n EOP esperado: b'\xaa\xbb\xcc\xdd'")
                     time.sleep(1)
@@ -72,7 +80,7 @@ class Server:
         'lastSuccessfulPacket': 0,
         }
         message1 = Packet(b'', config)
-        com1.sendData(message1)
+        com1.sendData(message1.message())
 
         print("-------------------------")
         print("Mensagem 0 enviada: ")
@@ -81,6 +89,7 @@ class Server:
 
         contador +=1 
         message=[0,0,0,0,0,0,0,0,0,0]
+        print(head[3])
         while contador <= head[3]:
             timeout_limit_1 = time.time()
             timeout_limit_2 = time.time() 
@@ -99,7 +108,7 @@ class Server:
                     config = {
                     'messageType': 4,
                     'serverID': 17,
-                    'totalNumberOfPackets': integer(message[3]),
+                    'totalNumberOfPackets': self.integer(message[3]),
                     'packetID': contador,
                     'fileID': 0,
                     'lastSuccessfulPacket': contador-1,
@@ -113,15 +122,16 @@ class Server:
                     config = {
                     'messageType': 6,
                     'serverID': 17,
-                    'totalNumberOfPackets': integer(message[3]),
+                    'totalNumberOfPackets': self.integer(message[3]),
                     'packetID': contador,
                     'fileID': 0,
                     'lastSuccessfulPacket': contador-1,
-                    'resendPacket': integer(message[4])
+                    'resendPacket': self.integer(message[4])
                     }
                     p = Packet(b'', config)
-                com1.sendData(p)
-                print("MENSAGEM ENVIADA: ")
+                    print("MENSAGEM TIPO 6 ENVIADA: ")
+                print([n for n in p.message()])
+                com1.sendData(p.message())
                 self.printConfig(config)
                 print("--------------------------------------------------")
                 
@@ -134,14 +144,14 @@ class Server:
                     config = {
                     'messageType': 5,
                     'serverID': 17,
-                    'totalNumberOfPackets': integer(message[3]),
+                    'totalNumberOfPackets': self.integer(message[3]),
                     'packetID': contador,
                     'fileID': 0,
                     'lastSuccessfulPacket': contador-1,
-                    'resendPacket': integer(message[4])
+                    'resendPacket': self.integer(message[4])
                     }
                     p = Packet(b'', config)
-                    com1.sendData(p)
+                    com1.sendData(p.message())
 
                     print("TEMPO ESGOTADO, mensagem tipo 5 enviada")
                     self.printConfig(config)
@@ -150,11 +160,26 @@ class Server:
                 elif time.time() - timeout_limit_1 > 2:
                     print("ZERANDO TIMER 1 SEI LA PRA QUE!!!!!!!!!!!")
                     print("Nao vou mandar mensagem porra nenhuma porque nao faz sentido enviar tipo 4")
+                    # Confirm the last successfully received mensage again
+                    config = {
+                    'messageType': 4,
+                    'serverID': 17,
+                    'totalNumberOfPackets': self.integer(message[3]),
+                    'packetID': contador,
+                    'fileID': 0,
+                    'lastSuccessfulPacket': contador-1,
+                    }
+                    p = Packet(b'', config)
+                    com1.sendData(p.message())
+                    print("--------------------------------------------------")
+                    print("MENSAGEM DE CONFIRMAÇÃO ENVIADA NOVAMENTE: ")
+                    self.printConfig(config)
+                    print("--------------------------------------------------")
                     timeout_limit_1 = time.time()
 
                     
 s = Server(17)
-Server.main()
+s.main()
 
 
 
