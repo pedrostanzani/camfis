@@ -42,6 +42,41 @@ class Packet:
         for i in range(len(h)):
             print(f"h{i} --> {h[i]}")
 
+    @staticmethod
+    def generate_standard_config(packet_id: int, total_number_of_packets: int, file_id: int):
+        return {
+            'messageType': 3,
+            'serverID': 17,
+            'totalNumberOfPackets': total_number_of_packets,
+            'packetID': packet_id,
+            'fileID': file_id,
+            'lastSuccessfulPacket': packet_id - 1,
+            'resendPacket': 0
+        }
+
+    @classmethod
+    def packets_from_data(cls, data: bytes, file_id: int = 1):
+        _data = data
+        split_payload = []
+        while len(_data) > 0:
+            if len(_data) > cls.MAX_PAYLOAD:
+                payload = _data[0:cls.MAX_PAYLOAD]
+                _data = _data[cls.MAX_PAYLOAD:]
+            else:
+                payload = _data
+                _data = []
+            split_payload.append(payload)
+
+        return [cls(
+            pl, 
+            cls.generate_standard_config(i + 1, len(split_payload), file_id)
+            ) for i, pl in enumerate(split_payload)]
+            
+    def __str__(self) -> str:
+        return f"Packet {self.packet_id} out of {self.total_number_of_packets} (file: {self.file_id})"
+    
+    def __repr__(self) -> str:
+        return f"Packet {self.packet_id} out of {self.total_number_of_packets} (file: {self.file_id})"
 
 
 if __name__ == '__main__':
