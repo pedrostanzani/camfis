@@ -153,6 +153,9 @@ class Server:
                 t = datetime.now()
                 string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /envio/type: {head[0]}/MessageSize: {len(head)}/TotalNumberOfPackets: {head[3]}/PacketID: {head[4]}/PayloadCRC: \n"
                 self.LIST.append(string)
+
+                if t.hour == 13 and t.minute==52 and t.second==59:
+                    break
                 
             else: 
                 print("MENSAGEM NÃO RECEBIDA\n")
