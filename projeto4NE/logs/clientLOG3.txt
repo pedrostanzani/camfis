@@ -1,0 +1,7 @@
+22/9/2023 20:43:2 /envio/type: 1/MessageSize: 10/TotalNumberOfPackets: 210/PacketID: 0/PayloadCRC: 
+22/9/2023 20:43:3 /receb/type: 2/MessageSize: 10/TotalNumberOfPackets: 0/PacketID: 0/PayloadCRC: 
+22/9/2023 20:43:3 /envio/type: 3/MessageSize: 10/TotalNumberOfPackets: 210/PacketID: 1/PayloadCRC: 
+22/9/2023 20:43:8 /envio/type: 3/MessageSize: 10/TotalNumberOfPackets: 210/PacketID: 1/PayloadCRC: 
+22/9/2023 20:43:13 /envio/type: 3/MessageSize: 10/TotalNumberOfPackets: 210/PacketID: 1/PayloadCRC: 
+22/9/2023 20:43:18 /envio/type: 3/MessageSize: 10/TotalNumberOfPackets: 210/PacketID: 1/PayloadCRC: 
+22/9/2023 20:43:23 /envio/type: 5/MessageSize: 10/TotalNumberOfPackets: 210/PacketID: 0/PayloadCRC: 

@@ -2,14 +2,13 @@ import time
 import numpy as np
 from core.enlace import enlace
 from packet import Packet
+from datetime import datetime
 
 # --------------------------------------------------------------------------------------------------
 # byte para int: int. from_bytes() -------- z = b'\x00\x00\x00\x00\x00\x01'; int.from_bytes(z,'big')
 # int para bytestring: int. to_bytes() ---- h = 1; h = h.to_bytes(6,'big')
 #   python -m serial.tools.list_ports
 # --------------------------------------------------------------------------------------------------
-
-
 
 
 class Server:
@@ -55,6 +54,9 @@ class Server:
                 # Message 1 received
                 head = com1.getData(9)[0]
                 EOP = com1.getData(com1.rx.getBufferLen())[0][-4:]
+                t = datetime.now()
+                string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /receb/type: {head[0]}/MessageSize: {len(head)}/TotalNumberOfPackets: {head[3]}/PacketID: {head[4]}/PayloadCRC: \n"
+                self.LIST.append(string)
                 if self.integer(head[0]) == 1 and self.integer(head[1]) == self.serverID and EOP == b'\xaa\xbb\xcc\xdd':
                     print("Verificado com sucesso:")
                     print("h0 recebido igual ao esperado (1)")
@@ -81,6 +83,10 @@ class Server:
         }
         message1 = Packet(b'', config)
         com1.sendData(message1.message())
+        h = message1.message()[0:10]
+        t = datetime.now()
+        string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /envio/type: {h[0]}/MessageSize: {len(h)}/TotalNumberOfPackets: {h[3]}/PacketID: {h[4]}/PayloadCRC: \n"
+        self.LIST.append(string)
 
         print("-------------------------")
         print("Mensagem 0 enviada: ")
@@ -89,17 +95,24 @@ class Server:
 
         contador +=1 
         message=[0,0,0,0,0,0,0,0,0,0]
-        print(head[3])
-        while contador <= head[3]:
-            timeout_limit_1 = time.time()
-            timeout_limit_2 = time.time() 
+        print(h[3])
+        timeout_limit_1 = time.time()
+        timeout_limit_2 = time.time()
+        while contador <= head[3]: 
             if com1.rx.getBufferLen() >= 9:
+                timeout_limit_1 = time.time()
+                timeout_limit_2 = time.time()
                 print("--------------------------------------------------")
                 print("\nMENSAGEM RECEBIDA: ")
                 message = com1.getData(com1.rx.getBufferLen())[0]
                 print(message)
                 print("--------------------------------------------------")
                 print()
+
+                t = datetime.now()
+                head = message[0:10]
+                string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /receb/type: {head[0]}/MessageSize: {len(head)}/TotalNumberOfPackets: {head[3]}/PacketID: {head[4]}/PayloadCRC: \n"
+                self.LIST.append(string)
 
                 if self.verifyType3(message[0:10], contador-1, len(message)-10-4) and message[-4:] == b'\xaa\xbb\xcc\xdd':
                     print("--------------------------------------------------")
@@ -126,14 +139,20 @@ class Server:
                     'packetID': contador,
                     'fileID': 0,
                     'lastSuccessfulPacket': contador-2,
-                    'resendPacket': self.integer(message[4])+1
+                    'resendPacket': contador
                     }
+                    
                     p = Packet(b'', config)
                     print("MENSAGEM TIPO 6 ENVIADA: ")
                 print([n for n in p.message()])
                 com1.sendData(p.message())
                 self.printConfig(config)
                 print("--------------------------------------------------")
+
+                head = p.message()[0:10]
+                t = datetime.now()
+                string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /envio/type: {head[0]}/MessageSize: {len(head)}/TotalNumberOfPackets: {head[3]}/PacketID: {head[4]}/PayloadCRC: \n"
+                self.LIST.append(string)
                 
             else: 
                 print("MENSAGEM NÃO RECEBIDA\n")
@@ -153,13 +172,17 @@ class Server:
                     p = Packet(b'', config)
                     com1.sendData(p.message())
 
+                    head = p.message()[0:10]
+                    t = datetime.now()
+                    string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /envio/type: {head[0]}/MessageSize: {len(head)}/TotalNumberOfPackets: {head[3]}/PacketID: {head[4]}/PayloadCRC: \n"
+                    self.LIST.append(string)
+
                     print("TEMPO ESGOTADO, mensagem tipo 5 enviada")
                     self.printConfig(config)
-                    exit()
+                    break
 
                 elif time.time() - timeout_limit_1 > 2:
-                    print("ZERANDO TIMER 1 SEI LA PRA QUE!!!!!!!!!!!")
-                    print("Nao vou mandar mensagem porra nenhuma porque nao faz sentido enviar tipo 4")
+                    
                     # Confirm the last successfully received mensage again
                     config = {
                     'messageType': 4,
@@ -171,16 +194,27 @@ class Server:
                     }
                     p = Packet(b'', config)
                     com1.sendData(p.message())
+
+                    head = p.message()[0:10]
+                    t = datetime.now()
+                    string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /envio/type: {head[0]}/MessageSize: {len(head)}/TotalNumberOfPackets: {head[3]}/PacketID: {head[4]}/PayloadCRC: \n"
+                    self.LIST.append(string)
+
                     print("--------------------------------------------------")
                     print("MENSAGEM DE CONFIRMAÇÃO ENVIADA NOVAMENTE: ")
                     self.printConfig(config)
                     print("--------------------------------------------------")
-                    timeout_limit_1 = time.time()
+                    
+
+        print("COMUNICAÇÃO FINALIZADA")
+            
 
                     
 s = Server(17)
 s.main()
 
-
+with open('serverLOG.txt', 'w') as f:
+    for line in s.LIST:
+        f.write(line)
 
 

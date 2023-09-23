@@ -3,6 +3,7 @@ from packet import Packet
 from core.enlace import enlace
 
 from pprint import pprint
+from datetime import datetime
 
 
 """
@@ -17,6 +18,11 @@ MESSAGE_TYPE_4 = 4
 MESSAGE_TYPE_6 = 6
 
 SERVER_ID = 17
+
+def txtLine(head, receb_or_envio):
+    t = datetime.now()
+    string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /{receb_or_envio}/type: {head[0]}/MessageSize: {len(head)}/TotalNumberOfPackets: {head[3]}/PacketID: {head[4]}/PayloadCRC: \n"
+    return string
 
 class PacketWrapper(Packet):
     @classmethod
@@ -51,6 +57,7 @@ class Client:
     SERIAL_NAME = '/dev/cu.usbmodem101'
 
     def __init__(self):
+        self.LIST = []
         self.com = enlace(self.SERIAL_NAME)
         self.data_packets = []
 
@@ -66,6 +73,8 @@ class Client:
             print("Initiating handshake protocol...")
             p = PacketWrapper.create_type_1({'totalNumberOfPackets': self.number_of_packets})
             self.com.sendData(p.message())
+            head = p.message()[0:10]
+            self.LIST.append(txtLine(head, "envio"))
             print("Just sent message type 1 to the server.")
 
             timeout_limit = time.time() + 5
@@ -76,6 +85,8 @@ class Client:
             if not self.com.rx.getBufferLen() < 10:
                 print("A message has been received.")
                 rxBuffer, _ = self.com.getData(10)
+                head = rxBuffer[0:10]
+                self.LIST.append(txtLine(head, "receb"))
                 message_type = rxBuffer[0]
                 print(f"Message type: {message_type}")
                 if message_type == MESSAGE_TYPE_2:
@@ -88,6 +99,8 @@ class Client:
         p = self.data_packets[packet_id - 1]
         self.com.rx.clearBuffer()
         self.com.sendData(p.message())
+        head = p.message()[0:10]
+        self.LIST.append(txtLine(head, "envio"))
         print(f"Sent out: {str(p)}")
 
         timeout_limit_1 = time.time() + 5
@@ -96,6 +109,8 @@ class Client:
             if time.time() > timeout_limit_1:
                 print(f"Just hit 5 second threshold. Resending message. Current buffer length: {self.com.rx.getBufferLen()}")
                 self.com.sendData(p.message())
+                head = p.message()[0:10]
+                self.LIST.append(txtLine(head, "envio"))
                 timeout_limit_1 = time.time() + 5
 
             if time.time() > timeout_limit_2:
@@ -107,6 +122,8 @@ class Client:
         # (c) header of type 6 has been received
         if not self.com.rx.getBufferLen() < 10:
             rxBuffer, _ = self.com.getData(10)
+            head = rxBuffer[0:10]
+            self.LIST.append(txtLine(head, "receb"))
             self.com.rx.clearBuffer()
             message_type = rxBuffer[0]
 
@@ -160,6 +177,8 @@ class Client:
         px = PacketWrapper.create_type_5({'totalNumberOfPackets': self.number_of_packets})
         self.has_timed_out = True
         self.com.sendData(px.message())
+        head = px.message()[0:10]
+        self.LIST.append(txtLine(head, "envio"))
         return None
             
 
@@ -200,3 +219,6 @@ class Client:
 if __name__ == '__main__':
     c = Client()
     c.main()
+    with open('clientLOG.txt', 'w') as f:
+        for line in c.LIST:
+            f.write(line)
