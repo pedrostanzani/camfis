@@ -1,9 +1,13 @@
+import crcmod
+
+
 class Packet:
     EOP = b'\xaa\xbb\xcc\xdd'
     MAX_PAYLOAD = 114
 
     def __init__(self, payload: bytes, config: dict):
         self.payload = payload
+        self.CRC16 = crcmod.predefined.Crc("crc-16")
 
         if not self.payload:
             self.payload = b''
@@ -24,6 +28,11 @@ class Packet:
         if 'resendPacket' in config:
             self.resend_packet = config['resendPacket']
 
+    def calculate_crc(self):
+        self.CRC16.update(self.payload)
+        crc_value = self.CRC16.crcValue
+        return crc_value.to_bytes(2, byteorder='big')
+
     def head(self):
         _head = bytes()
         _head += self.message_type.to_bytes(1, 'big') # H0
@@ -34,13 +43,16 @@ class Packet:
         _head += self.file_id.to_bytes(1, 'big') if self.is_handshake else len(self.payload).to_bytes(1, 'big') # H5
         _head += self.resend_packet.to_bytes(1, 'big') if self.message_type == 6 else b'\x00' # H6
         _head += self.last_successful_packet.to_bytes(1, 'big') # H7
-        _head += b'\x00\x00' # H8, H9
+        # _head += b'\x00\x00' # H8, H9
+        _head += self.calculate_crc()
         return _head
 
     def message(self):
         return self.head() + self.payload + self.EOP
     
     def debug_header(self):
+        print("Header enviado:", [n for n in self.head()])
+        return None
         h = [n for n in self.head()]
         for i in range(len(h)):
             print(f"h{i} --> {h[i]}")
