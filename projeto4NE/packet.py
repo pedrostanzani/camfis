@@ -15,8 +15,9 @@ class Packet:
         self.server_id = config['serverID']
         self.total_number_of_packets = config['totalNumberOfPackets']
         self.packet_id = config['packetID']
-        if config['packetID']>10:
-            self.packet_id = 100
+        # log2:
+        #if config['packetID']>10:
+            #self.packet_id = 100
         self.file_id = config['fileID']
         self.last_successful_packet = config['lastSuccessfulPacket']
         self.is_handshake = config['messageType'] == 1
