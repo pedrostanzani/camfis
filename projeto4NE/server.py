@@ -3,6 +3,12 @@ import numpy as np
 from core.enlace import enlace
 from packet import Packet
 from datetime import datetime
+import crcmod
+
+def crc_from_payload(payload: bytes):
+    crc16 = crcmod.mkCrcFun(0x11021, initCrc=0x0000, xorOut=0x0000)
+    crc_value = crc16(payload)
+    return crc_value.to_bytes(2, byteorder='big')
 
 # --------------------------------------------------------------------------------------------------
 # byte para int: int. from_bytes() -------- z = b'\x00\x00\x00\x00\x00\x01'; int.from_bytes(z,'big')
@@ -36,7 +42,7 @@ class Server:
             print(k, v)
     
     def main(self):
-        serialName = '/dev/cu.usbmodem21101'
+        serialName = '/dev/cu.usbmodem101'
         com1 = enlace(serialName)
         com1.enable()
         print("esperando 1 byte de sacrifício") 
@@ -111,12 +117,28 @@ class Server:
 
                 t = datetime.now()
                 head = message[0:10]
-                string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /receb/type: {head[0]}/MessageSize: {len(head)}/TotalNumberOfPackets: {head[3]}/PacketID: {head[4]}/PayloadCRC: \n"
+                string = f"{t.day}/{t.month}/{t.year} {t.hour}:{t.minute}:{t.second} /receb/type: {head[0]}/MessageSize: {len(head)}/TotalNumberOfPackets: {head[3]}/PacketID: {head[4]}/PayloadCRC: {head[7]}, {head[8]}\n"
                 self.LIST.append(string)
 
                 if self.verifyType3(message[0:10], contador-1, len(message)-10-4) and message[-4:] == b'\xaa\xbb\xcc\xdd':
                     print("--------------------------------------------------")
                     print('PACKET RECEBIDO CONFORME ESPERADO!')
+
+                    # CRC check begins
+                    expected_crc = crc_from_payload(message[10:-4])
+                    received_crc = message[8:10]
+
+                    print(f"Expected CRC: {[n for n in expected_crc]}")
+                    print(f"Received CRC: {[n for n in received_crc]}")
+
+                    if expected_crc != received_crc:
+                        print("CRC check failed. Here's why: ")
+                        print("Payload", [n for n in message[10:-4]])
+                        exit(1)
+                    else:
+                        print("CRC check was successful.")
+                    # CRC check ends
+
                     # packet ok
                     config = {
                     'messageType': 4,
