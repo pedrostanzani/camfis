@@ -181,7 +181,7 @@ class Server:
                     #break
                 
             else: 
-                print("MENSAGEM NÃO RECEBIDA\n")
+                print("\n")
                 time.sleep(1)
                 if time.time() - timeout_limit_2 > 20: 
                     ocioso = True
